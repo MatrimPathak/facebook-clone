@@ -2,36 +2,63 @@ import Image from "next/image"
 import { useSession } from "next-auth/client";
 import { EmojiHappyIcon } from "@heroicons/react/outline"
 import { CameraIcon, VideoCameraIcon } from "@heroicons/react/solid"
-import { useRef } from "react";
-import { db } from "../firebase";
-import { collection, addDoc } from "firebase/firestore"; 
+import { useRef, useState } from "react";
+import { db, storage, collection, addDoc, ref, uploadString, getDownloadURL, updateDoc, serverTimestamp, doc } from "../firebase";
 
 
 function InputBox() {
     const [session] = useSession();
     const inputRef = useRef(null);
+    const filePickerRef = useRef(null);
+    const [imageToPost, setImageToPost] = useState(null);
 
     const sendPost = (e) => {
         e.preventDefault();
         if (!inputRef.current.value) return;
-
-        // db.collection("posts")
-        // .add({
-        //   message: inputRef.current.value,
-        //   name: session.user.name,
-        //   email: session.user.email,
-        //   image: session.user.image,
-        // //   timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        // })
 
         addDoc(collection(db, "posts"), {
             message: inputRef.current.value,
             name: session.user.name,
             email: session.user.email,
             image: session.user.image,
-        })
+            timestamp: serverTimestamp(),
+        }).then(entry => {
+            if (imageToPost) {
+                const id = entry.id;
+                const storageRef = ref(storage, `posts/${entry.id}`);
+                uploadString(storageRef, imageToPost, 'data_url').then((snapshot) => {
+                    getDownloadURL(storageRef).then((url) => {
+                        updateDoc(doc(db, `posts`, `${entry.id}`), {
+                            postImage: url,
+                        }, { merge: true })
+                    })
+                })
+                // uploadTask.on('state_changed', null, error => console.error(error), () => {
+                //     getDownloadURL(storageRef).then((url) => {
+                //         updateDoc(collection(db, "posts").doc(doc.id), {
+                //             postImage: url,
+                //         }, { merge: true })
+                //     })
+                // });
+                removeImage();
+            }
+        });
 
         inputRef.current.value = ""
+    }
+    const addImageToPost = (e) => {
+        const reader = new FileReader();
+        if (e.target.files[0]) {
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        reader.onload = (readerEvent) => {
+            setImageToPost(readerEvent.target.result)
+        }
+    };
+
+    const removeImage = () => {
+        setImageToPost(null);
     }
 
     return (
@@ -59,6 +86,12 @@ function InputBox() {
                         Submit
                     </button>
                 </form>
+                {imageToPost && (
+                    <div onClick={removeImage} className="flex flex-col filter hover:brightness-110 transition duration-150 transform hover:scale-105 cursor-pointer">
+                        <img className="h-10 object-contain" src={imageToPost} alt="" />
+                        <p className="text-xs text-red-500 text-center">Remove</p>
+                    </div>
+                )}
             </div>
             <div className="flex justify-evenly p-3 border-t">
                 <div className="inputIcon">
@@ -68,11 +101,12 @@ function InputBox() {
                     </p>
                 </div>
 
-                <div className="inputIcon">
+                <div onClick={() => filePickerRef.current.click()} className="inputIcon">
                     <CameraIcon className="h-7 text-green-500" />
                     <p className="text-xs ms:text-sm xl:text-base">
                         Photo/Video
                     </p>
+                    <input ref={filePickerRef} onChange={addImageToPost} type="file" hidden />
                 </div>
 
                 <div className="inputIcon">

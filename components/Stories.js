@@ -29,12 +29,12 @@ const stories = [
 ];
 
 function Stories() {
-    const [session, loading]=useSession();
+    const [session, loading] = useSession();
     return (
         <div className="flex justify-center space-x-3 mx-auto">
-            <StoryCard name={session.user.name} profile={session.user.image} src={stories[0].src}/>
+            <StoryCard name={session.user.name} profile={session.user.image} src="https://pbs.twimg.com/profile_images/1283688609971761162/xpq1cNHm_400x400.jpg" />
             {stories.map((story) => (
-                <StoryCard key={story.id} name={story.name} src={story.src} profile={story.profile}/>
+                <StoryCard key={story.id} name={story.name} src={story.src} profile={story.profile} />
             ))}
         </div>
     );
