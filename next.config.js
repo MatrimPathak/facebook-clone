@@ -1,7 +1,7 @@
 module.exports = {
   images: {
     domains: [
-      "photos.google.com",
+      "links.matrimpathak.com",
       "pbs.twimg.com",
       "links.papareact.com",
       "platform-lookaside.fbsbx.com",
